@@ -1,0 +1,40 @@
+name: .NET Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        dotnet-version: [ '6.0.x' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+          cache: true
+
+      - name: Restore dependencies
+        run: dotnet restore src/MyDotnetApp/MyDotnetApp.csproj
+
+      - name: Build project
+        run: dotnet build src/MyDotnetApp/MyDotnetApp.csproj --no-restore --configuration Release
+
+      - name: Run tests
+        run: dotnet test tests/MyDotnetApp.Tests/MyDotnetApp.Tests.csproj --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/test-results.trx'
+        if: ${{ always() }}
